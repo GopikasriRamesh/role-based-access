@@ -1,6 +1,8 @@
 const Request = require('../models/Request');
 const RequestLog = require('../models/RequestLog');
 const WORKFLOW_MATRIX = require('../config/workflow');
+const { Op } = require('sequelize'); 
+const User = require('../models/User');
 
 exports.createRequest = async (req, res) => {
   try {
@@ -73,5 +75,69 @@ exports.updateRequestStatus = async (req, res) => {
     res.json({ message: `Status updated smoothly to ${targetStatus}`, request });
   } catch (error) {
     res.status(500).json({ message: 'Workflow state execution error', error: error.message });
+  }
+};
+
+exports.getDashboardRequests = async (req, res) => {
+  try {
+    const { role, id: userId } = req.user;
+    const { status, priority, search } = req.query; 
+
+    let queryConditions = {};
+
+    if (role === 'User') {
+      queryConditions.createdById = userId;
+    } else if (role === 'Manager') {
+      queryConditions = {};
+    } else if (role === 'Admin') {
+      queryConditions = {};
+    }
+
+    if (status) queryConditions.status = status;
+    if (priority) queryConditions.priority = priority;
+    
+    if (search) {
+      queryConditions[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { category: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const requests = await Request.findAll({
+      where: queryConditions,
+      include: [
+        { model: User, as: 'creator', attributes: ['id', 'name', 'email', 'role'] }
+      ],
+      order: [['updatedAt', 'DESC']]
+    });
+
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to retrieve dashboard records', error: error.message });
+  }
+};
+
+exports.getRequestHistoryLogs = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const targetRequest = await Request.findByPk(id);
+    if (!targetRequest) return res.status(404).json({ message: 'Target request not found' });
+
+    if (req.user.role === 'User' && targetRequest.createdById !== req.user.id) {
+      return res.status(403).json({ message: 'Security Block: Cannot view history data for external files.' });
+    }
+
+    const logs = await RequestLog.findAll({
+      where: { requestId: id },
+      include: [
+        { model: User, as: 'modifier', attributes: ['id', 'name', 'role'] }
+      ],
+      order: [['createdAt', 'ASC']] 
+    });
+
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to extract history traces', error: error.message });
   }
 };
