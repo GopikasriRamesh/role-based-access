@@ -13,6 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/requests', require('./routes/requestRoutes'));
 
 app.get('/', (req, res) => res.send('SQL Workflow Engine Active...'));
 
