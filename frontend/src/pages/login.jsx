@@ -36,7 +36,7 @@ const Login = () => {
           <div className="h-12 w-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-200 mb-4">
             <Lock className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Workflow Node Account</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Workflow Account</h1>
           <p className="text-slate-500 text-sm mt-1">Enter your assigned parameters to gain access</p>
         </div>
 
